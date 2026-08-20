@@ -6,9 +6,9 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage, AnyMessage
 from pydantic import BaseModel, Field
 
-from .db_inspector import get_database_schema
-from .sql_validator import validate_sql, SQLValidationError
-from .sql_executor import execute_sql_safely, SQLExecutionError
+from db_inspector import get_database_schema
+from sql_validator import validate_sql, SQLValidationError
+from sql_executor import execute_sql_safely, SQLExecutionError
 
 # Setup LLM - can be configured for OpenAI or local Ollama with OpenAI compatible endpoint
 # By default we can use ChatOpenAI pointing to the Ollama endpoint if defined, otherwise standard OpenAI
