@@ -43,9 +43,18 @@ export default function App() {
       
       setMessages(prev => [...prev, aiMsg]);
     } catch (error) {
+      let errorMsg = 'An error occurred';
+      if (error.message === 'Network Error' || error.code === 'ERR_CONNECTION_REFUSED') {
+        errorMsg = 'Unable to connect to the backend. Make sure FastAPI is running on http://localhost:8000.';
+      } else if (error.response?.data?.detail) {
+        errorMsg = error.response.data.detail;
+      } else if (error.message) {
+        errorMsg = error.message;
+      }
+
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        error: error.response?.data?.detail || error.message || 'An error occurred'
+        error: errorMsg
       }]);
     } finally {
       setLoading(false);
