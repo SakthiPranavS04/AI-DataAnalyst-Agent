@@ -13,10 +13,13 @@ from sql_executor import execute_sql_safely, SQLExecutionError
 # Setup LLM - can be configured for OpenAI or local Ollama with OpenAI compatible endpoint
 # By default we can use ChatOpenAI pointing to the Ollama endpoint if defined, otherwise standard OpenAI
 if os.getenv("OLLAMA_BASE_URL"):
+    base_url = os.getenv("OLLAMA_BASE_URL")
+    if not base_url.endswith("/v1"):
+        base_url = f"{base_url}/v1"
     llm = ChatOpenAI(
         model=os.getenv("OLLAMA_MODEL", "gpt-oss:20b-cloud"),
-        base_url=f"{os.getenv('OLLAMA_BASE_URL')}/v1",
-        api_key="ollama" # api key isn't needed for local ollama but required by client
+        base_url=base_url,
+        api_key=os.getenv("OLLAMA_API_KEY", "ollama")
     )
 else:
     llm = ChatOpenAI(

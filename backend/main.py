@@ -4,12 +4,20 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from database import get_db
 from sqlalchemy.orm import Session
+import os
+import json
 
 app = FastAPI(title="AI SQL Data Analyst API")
 
+cors_origins_str = os.getenv("BACKEND_CORS_ORIGINS", '["*"]')
+try:
+    origins = json.loads(cors_origins_str)
+except Exception:
+    origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
