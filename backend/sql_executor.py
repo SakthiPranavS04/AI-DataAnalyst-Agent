@@ -1,8 +1,17 @@
+import decimal
+import datetime
 from sqlalchemy import text
 from database import engine
 
 class SQLExecutionError(Exception):
     pass
+
+def sanitize_for_json(val):
+    if isinstance(val, decimal.Decimal):
+        return float(val)
+    elif isinstance(val, (datetime.datetime, datetime.date)):
+        return val.isoformat()
+    return val
 
 def execute_sql_safely(sql: str, row_limit: int = 100) -> tuple[list[dict], list[str]]:
     """
@@ -25,7 +34,8 @@ def execute_sql_safely(sql: str, row_limit: int = 100) -> tuple[list[dict], list
             rows = []
             
             for row in result.fetchmany(row_limit):
-                rows.append(dict(zip(columns, row)))
+                row_dict = {col: sanitize_for_json(val) for col, val in zip(columns, row)}
+                rows.append(row_dict)
                 
             return rows, columns
             

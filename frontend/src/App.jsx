@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import axios from 'axios';
-import { 
-  BarChart, Bar, LineChart, Line, PieChart, Pie, 
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell 
+import {
+  BarChart, Bar, LineChart, Line, PieChart, Pie,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell
 } from 'recharts';
 import { Database, Send, Terminal, Activity, Table, PieChart as PieChartIcon, ChevronDown, ChevronUp } from 'lucide-react';
 
@@ -30,8 +30,8 @@ export default function App() {
         session_id: sessionId
       });
 
-      const aiMsg = { 
-        role: 'assistant', 
+      const aiMsg = {
+        role: 'assistant',
         content: response.data.answer,
         sql: response.data.sql,
         rows: response.data.rows,
@@ -40,7 +40,7 @@ export default function App() {
         agent_steps: response.data.agent_steps,
         error: response.data.error
       };
-      
+
       setMessages(prev => [...prev, aiMsg]);
     } catch (error) {
       let errorMsg = 'An error occurred';
@@ -52,8 +52,8 @@ export default function App() {
         errorMsg = error.message;
       }
 
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
+      setMessages(prev => [...prev, {
+        role: 'assistant',
         error: errorMsg
       }]);
     } finally {
@@ -94,8 +94,8 @@ export default function App() {
               <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
                 <div className="flex items-center gap-2 text-blue-400">
                   <div className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" />
-                  <div className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style={{animationDelay: '0.2s'}} />
-                  <div className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style={{animationDelay: '0.4s'}} />
+                  <div className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '0.2s' }} />
+                  <div className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '0.4s' }} />
                   <span className="ml-2 text-sm">Agent is thinking...</span>
                 </div>
               </div>
@@ -127,7 +127,7 @@ export default function App() {
 
 function MessageCard({ message }) {
   const isUser = message.role === 'user';
-  
+
   if (isUser) {
     return (
       <div className="flex gap-4 flex-row-reverse">
@@ -156,7 +156,7 @@ function MessageCard({ message }) {
             <div className="prose prose-invert max-w-none">
               <p className="text-lg leading-relaxed">{message.content}</p>
             </div>
-            
+
             {message.agent_steps && message.agent_steps.length > 0 && (
               <AgentActivity steps={message.agent_steps} />
             )}
@@ -181,10 +181,10 @@ function MessageCard({ message }) {
 
 function AgentActivity({ steps }) {
   const [open, setOpen] = useState(false);
-  
+
   return (
     <div className="border border-gray-800 rounded-md overflow-hidden bg-gray-950/50">
-      <button 
+      <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between p-3 text-sm text-gray-400 hover:text-gray-300 hover:bg-gray-800/50 transition-colors"
       >
@@ -194,7 +194,7 @@ function AgentActivity({ steps }) {
         </div>
         {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
       </button>
-      
+
       {open && (
         <div className="p-3 border-t border-gray-800 bg-black/20">
           <ul className="space-y-2">
@@ -213,10 +213,10 @@ function AgentActivity({ steps }) {
 
 function SqlViewer({ sql }) {
   const [open, setOpen] = useState(false);
-  
+
   return (
     <div className="border border-gray-800 rounded-md overflow-hidden">
-      <button 
+      <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between p-3 text-sm text-gray-400 hover:text-gray-300 hover:bg-gray-800/50 transition-colors bg-gray-900"
       >
@@ -226,7 +226,7 @@ function SqlViewer({ sql }) {
         </div>
         {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
       </button>
-      
+
       {open && (
         <div className="p-4 bg-[#0d1117] overflow-x-auto">
           <pre className="text-sm text-blue-300 font-mono">
@@ -240,7 +240,7 @@ function SqlViewer({ sql }) {
 
 function TableViewer({ rows, columns }) {
   if (!rows || rows.length === 0) return null;
-  
+
   return (
     <div className="mt-4 border border-gray-800 rounded-md overflow-hidden bg-gray-900">
       <div className="p-2 bg-gray-800/50 border-b border-gray-800 flex items-center gap-2 text-sm text-gray-400">
@@ -275,24 +275,24 @@ function TableViewer({ rows, columns }) {
 
 function ChartViewer({ chart }) {
   if (!chart || !chart.data || chart.data.length === 0) return null;
-  
+
   const { type, data, xAxis, yAxis } = chart;
-  
+
   return (
     <div className="mt-4 border border-gray-800 rounded-md overflow-hidden bg-gray-900 p-4">
       <div className="flex items-center gap-2 text-sm text-gray-400 mb-4">
         <PieChartIcon className="w-4 h-4 text-orange-400" />
         <span className="capitalize">{type} Chart</span>
       </div>
-      
+
       <div className="h-[300px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           {type === 'bar' ? (
             <BarChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey={xAxis} stroke="#9ca3af" tick={{fill: '#9ca3af'}} />
-              <YAxis stroke="#9ca3af" tick={{fill: '#9ca3af'}} />
-              <Tooltip 
+              <XAxis dataKey={xAxis} stroke="#9ca3af" tick={{ fill: '#9ca3af' }} />
+              <YAxis stroke="#9ca3af" tick={{ fill: '#9ca3af' }} />
+              <Tooltip
                 contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#f3f4f6' }}
                 itemStyle={{ color: '#60a5fa' }}
               />
@@ -302,13 +302,13 @@ function ChartViewer({ chart }) {
           ) : type === 'line' ? (
             <LineChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey={xAxis} stroke="#9ca3af" tick={{fill: '#9ca3af'}} />
-              <YAxis stroke="#9ca3af" tick={{fill: '#9ca3af'}} />
-              <Tooltip 
+              <XAxis dataKey={xAxis} stroke="#9ca3af" tick={{ fill: '#9ca3af' }} />
+              <YAxis stroke="#9ca3af" tick={{ fill: '#9ca3af' }} />
+              <Tooltip
                 contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#f3f4f6' }}
               />
               <Legend />
-              <Line type="monotone" dataKey={yAxis} stroke="#10b981" strokeWidth={3} dot={{r: 4, fill: '#10b981'}} />
+              <Line type="monotone" dataKey={yAxis} stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: '#10b981' }} />
             </LineChart>
           ) : type === 'pie' ? (
             <PieChart>
@@ -320,20 +320,20 @@ function ChartViewer({ chart }) {
                 cy="50%"
                 outerRadius={100}
                 fill="#8884d8"
-                label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                 labelLine={false}
               >
                 {data.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip 
+              <Tooltip
                 contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#f3f4f6' }}
               />
               <Legend />
             </PieChart>
           ) : (
-             <div className="text-gray-500 text-center pt-20">Unsupported chart type</div>
+            <div className="text-gray-500 text-center pt-20">Unsupported chart type</div>
           )}
         </ResponsiveContainer>
       </div>
