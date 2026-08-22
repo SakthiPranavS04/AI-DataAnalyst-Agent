@@ -25,7 +25,8 @@ def execute_sql_safely(sql: str, row_limit: int = 100) -> tuple[list[dict], list
             # We enforce read-only at connection level if possible, but validator handles syntax.
             # Timeout can be set at statement level using dialect specific options if needed.
             # For Postgres, we can do SET statement_timeout = '10s'
-            conn.execute(text("SET statement_timeout = '10s'"))
+            if engine.dialect.name == 'postgresql':
+                conn.execute(text("SET statement_timeout = '10s'"))
             
             # Ensure query has limit if not present, but simple way is just fetchmany
             result = conn.execute(text(sql))

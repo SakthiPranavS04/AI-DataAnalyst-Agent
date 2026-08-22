@@ -63,10 +63,14 @@ def inspect_schema(state: AgentState) -> AgentState:
     return {"schema": schema_str}
 
 class SQLGenerationOutput(BaseModel):
-    sql: str = Field(description="The PostgreSQL query to answer the question")
+    sql: str = Field(description="The SQL query to answer the question")
 
 def generate_sql(state: AgentState) -> AgentState:
     add_step(state, "Generating SQL")
+    
+    # Check active database dialect
+    from database import engine
+    dialect_name = "SQLite" if engine.dialect.name == "sqlite" else "PostgreSQL"
     
     # Also append the current question to history
     state.get("conversation_history", []).append({"role": "user", "content": state['user_question']})
@@ -78,12 +82,12 @@ def generate_sql(state: AgentState) -> AgentState:
         error_context = f"\n\nPrevious attempt failed with error:\n{state['error']}\nPlease correct the SQL."
         
     prompt = f"""
-    You are an expert PostgreSQL Data Analyst.
+    You are an expert {dialect_name} Data Analyst.
     Your task is to generate a read-only SQL query to answer the user's question.
     
     Rules:
     - Use ONLY the provided schema. Do NOT invent tables or columns.
-    - Generate PostgreSQL-compatible SQL.
+    - Generate {dialect_name}-compatible SQL.
     - NEVER modify database data (NO INSERT, UPDATE, DELETE, DROP, etc).
     - Return ONLY read-only queries (SELECT).
     - Use correct joins.
@@ -111,14 +115,14 @@ def generate_sql(state: AgentState) -> AgentState:
     try:
         try:
             result = structured_llm.invoke([
-                SystemMessage(content="You are an expert PostgreSQL Data Analyst."),
+                SystemMessage(content=f"You are an expert {dialect_name} Data Analyst."),
                 HumanMessage(content=prompt)
             ])
             sql = result.sql
         except Exception as e:
             # Fallback to normal parsing if structured output fails
             response = llm.invoke([
-                SystemMessage(content="You are an expert PostgreSQL Data Analyst."),
+                SystemMessage(content=f"You are an expert {dialect_name} Data Analyst."),
                 HumanMessage(content=prompt)
             ])
             content = response.content

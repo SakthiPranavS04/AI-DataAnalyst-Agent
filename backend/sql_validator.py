@@ -32,5 +32,13 @@ def validate_sql(sql: str) -> str:
             raise SQLValidationError(f"Only SELECT statements are allowed. Found: {type(statement).__name__}")
             
     # Additional checks could be placed here to prevent malicious functions if needed.
+    try:
+        from database import engine
+        dialect_name = engine.dialect.name
+        # Sqlglot expects 'postgres' instead of 'postgresql'
+        if dialect_name == 'postgresql':
+            dialect_name = 'postgres'
+    except Exception:
+        dialect_name = 'postgres'
     
-    return statement.sql(dialect="postgres")
+    return statement.sql(dialect=dialect_name)
