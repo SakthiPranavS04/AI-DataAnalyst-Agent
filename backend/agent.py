@@ -95,6 +95,7 @@ def generate_sql(state: AgentState) -> AgentState:
     - Use aliases for calculated fields.
     - Apply sensible LIMIT values (e.g., LIMIT 100).
     - Answer date/time questions appropriately based on timestamps.
+    - String comparisons on values MUST be case-insensitive (e.g., use LOWER(column) = 'value' or ILIKE) to ensure matches, as database text values like status contain capitalized words (e.g., 'Completed', 'Pending').
     
     Schema:
     {state.get("schema", "")}

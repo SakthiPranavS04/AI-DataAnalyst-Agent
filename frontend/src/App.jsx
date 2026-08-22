@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
 import {
@@ -10,7 +10,7 @@ import {
   PieChart as PieChartIcon, ChevronDown, ChevronUp,
   Sun, Moon, Info, Check, Copy, Download, RefreshCw,
   Folder, FolderOpen, Key, ChevronRight, Menu, X, Play,
-  Users, DollarSign, TrendingUp, Sparkles, Clock, Code, Search
+  User, Users, DollarSign, TrendingUp, Sparkles, Clock, Code, Search, Square
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -231,6 +231,19 @@ export default function App() {
   const [sessionId] = useState(crypto.randomUUID());
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const abortControllerRef = useRef(null);
+
+  const handleStop = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setLoading(false);
+    setMessages(prev => [...prev, {
+      role: 'assistant',
+      error: 'Request stopped by user.'
+    }]);
+  };
 
   // Schema Explorer States
   const [schema, setSchema] = useState([]);
@@ -296,10 +309,15 @@ export default function App() {
     setMessages(prev => [...prev, userMsg]);
     setLoading(true);
 
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       const response = await axios.post(`${API_URL}/api/query`, {
         question: qText,
         session_id: sessionId
+      }, {
+        signal: controller.signal
       });
 
       const aiMsg = {
@@ -315,6 +333,9 @@ export default function App() {
 
       setMessages(prev => [...prev, aiMsg]);
     } catch (error) {
+      if (axios.isCancel(error)) {
+        return;
+      }
       let errorMsg = 'An error occurred';
       if (error.response) {
         const status = error.response.status;
@@ -348,6 +369,7 @@ export default function App() {
       }]);
     } finally {
       setLoading(false);
+      abortControllerRef.current = null;
     }
   };
 
@@ -360,10 +382,15 @@ export default function App() {
     setQuestion('');
     setLoading(true);
 
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       const response = await axios.post(`${API_URL}/api/query`, {
         question: userMsg.content,
         session_id: sessionId
+      }, {
+        signal: controller.signal
       });
 
       const aiMsg = {
@@ -379,6 +406,9 @@ export default function App() {
 
       setMessages(prev => [...prev, aiMsg]);
     } catch (error) {
+      if (axios.isCancel(error)) {
+        return;
+      }
       let errorMsg = 'An error occurred';
       if (error.response) {
         const status = error.response.status;
@@ -412,6 +442,7 @@ export default function App() {
       }]);
     } finally {
       setLoading(false);
+      abortControllerRef.current = null;
     }
   };
 
@@ -754,14 +785,25 @@ export default function App() {
               disabled={loading}
             />
             <div className="absolute right-2 top-2 bottom-2 flex items-center gap-1.5">
-              <button
-                type="submit"
-                disabled={loading || !question.trim()}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
-              >
-                <Send className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Ask AI</span>
-              </button>
+              {loading ? (
+                <button
+                  type="button"
+                  onClick={handleStop}
+                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 text-xs font-semibold animate-pulse"
+                >
+                  <Square className="w-3.5 h-3.5 fill-white text-white" />
+                  <span>Stop</span>
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={loading || !question.trim()}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Ask AI</span>
+                </button>
+              )}
             </div>
           </form>
           <div className="max-w-4xl mx-auto text-center mt-2.5 text-[10px] text-app-text-secondary/50">
@@ -780,10 +822,13 @@ function MessageCard({ message, theme }) {
     return (
       <div className="flex gap-4 flex-row-reverse animate-fade-in-up max-w-3xl ml-auto">
         <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-blue-500 flex items-center justify-center flex-shrink-0 shadow-md">
-          <span className="text-xs font-bold text-white uppercase">U</span>
+          <User className="w-4.5 h-4.5 text-white" />
         </div>
-        <div className="bg-app-chat-user rounded-2xl px-5 py-3 shadow-md text-white text-sm max-w-[85%] font-medium">
-          <p className="leading-relaxed">{message.content}</p>
+        <div className="space-y-1">
+          <span className="text-[10px] font-bold text-app-text-secondary/40 uppercase tracking-wider block text-right pr-1 select-none">You</span>
+          <div className="bg-app-chat-user rounded-2xl px-5 py-3 shadow-md text-white text-sm font-medium">
+            <p className="leading-relaxed">{message.content}</p>
+          </div>
         </div>
       </div>
     );
@@ -809,7 +854,9 @@ function MessageCard({ message, theme }) {
       <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-500 flex items-center justify-center flex-shrink-0 shadow-md">
         <Database className="w-4 h-4 text-white" />
       </div>
-      <div className="bg-app-chat-ai border border-app-border rounded-2xl p-6 shadow-lg space-y-6 w-full glass-panel hover-glow">
+      <div className="space-y-1 w-full">
+        <span className="text-[10px] font-bold text-app-text-secondary/40 uppercase tracking-wider block pl-1 select-none">AI Analyst</span>
+        <div className="bg-app-chat-ai border border-app-border rounded-2xl p-6 shadow-lg space-y-6 w-full glass-panel hover-glow">
         {message.error ? (
           <div className="text-red-500 bg-red-950/10 p-4 rounded-xl border border-red-900/20 flex items-start gap-3">
             <Info className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
@@ -930,6 +977,7 @@ function MessageCard({ message, theme }) {
           </>
         )}
       </div>
+     </div>
     </div>
   );
 }
