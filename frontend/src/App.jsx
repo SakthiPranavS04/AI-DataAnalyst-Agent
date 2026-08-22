@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
   BarChart, Bar, LineChart, Line, AreaChart, Area, PieChart, Pie,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell
@@ -641,7 +642,7 @@ export default function App() {
               </div>
               <div>
                 <h1 className="text-base md:text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-blue-400 to-teal-400">
-                  AI SQL Business Intelligence
+                  AI SQL DataAnalyst Agent
                 </h1>
                 <div className="text-[10px] text-app-text-secondary flex items-center gap-1.5 mt-0.5">
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
@@ -677,7 +678,7 @@ export default function App() {
                   <span>LangGraph Agentic Workflow Active</span>
                 </div>
                 <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-blue-400 to-teal-400">
-                  Interactive Database Analyst
+                  AI SQL DataAnalyst Agent
                 </h2>
                 <p className="text-app-text-secondary text-xs md:text-sm max-w-xl mx-auto leading-relaxed">
                   Query product inventories, checkout statistics, and customer metrics in natural English. The agent generates SQL, executes safely, and charts outputs automatically.
@@ -869,7 +870,7 @@ function MessageCard({ message, theme }) {
             {/* Conversation Insights Text - Always visible */}
             <div className="prose prose-invert max-w-none text-app-text-primary text-sm">
               <div className="markdown-content">
-                <ReactMarkdown>{message.content}</ReactMarkdown>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
               </div>
             </div>
 

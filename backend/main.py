@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-app = FastAPI(title="AI SQL Data Analyst API")
+app = FastAPI(title="AI SQL DataAnalyst Agent")
 
 cors_origins_str = os.getenv("BACKEND_CORS_ORIGINS", '["*"]')
 try:
