@@ -48,7 +48,7 @@ class QueryResponse(BaseModel):
 def health_check():
     return {"status": "ok"}
 
-from agent import app_graph, AgentState
+from agent import app_graph, AgentState, LLMServiceError
 import uuid
 
 @app.post("/api/query", response_model=QueryResponse)
@@ -84,8 +84,13 @@ def run_query(request: QueryRequest, db: Session = Depends(get_db)):
             agent_steps=result_state.get("agent_steps", []),
             error=result_state.get("error") if result_state.get("error") else None
         )
+    except LLMServiceError as e:
+        raise HTTPException(status_code=502, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+        err_msg = str(e)
+        if "psycopg2" in err_msg or "sqlalchemy" in err_msg or "connection" in err_msg.lower():
+            raise HTTPException(status_code=503, detail=f"Unable to connect to the database. Details: {err_msg}")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {err_msg}")
 
 @app.post("/api/chat")
 def chat(request: QueryRequest, db: Session = Depends(get_db)):

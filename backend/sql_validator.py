@@ -10,6 +10,8 @@ def validate_sql(sql: str) -> str:
     Returns the parsed SQL string if valid, otherwise raises SQLValidationError.
     Only allows read-only (SELECT) statements.
     """
+    if not sql or not sql.strip():
+        raise SQLValidationError("SQL query is empty or None.")
     try:
         # We parse the sql into a list of expressions
         parsed_statements = sqlglot.parse(sql, read="postgres")

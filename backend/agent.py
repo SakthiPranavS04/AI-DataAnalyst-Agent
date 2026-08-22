@@ -10,12 +10,17 @@ from db_inspector import get_database_schema
 from sql_validator import validate_sql, SQLValidationError
 from sql_executor import execute_sql_safely, SQLExecutionError
 
+class LLMServiceError(Exception):
+    pass
+
 # Setup LLM - can be configured for OpenAI or local Ollama with OpenAI compatible endpoint
 # By default we can use ChatOpenAI pointing to the Ollama endpoint if defined, otherwise standard OpenAI
 if os.getenv("OLLAMA_BASE_URL"):
-    base_url = os.getenv("OLLAMA_BASE_URL")
+    base_url = os.getenv("OLLAMA_BASE_URL").rstrip("/")
     if not base_url.endswith("/v1"):
         base_url = f"{base_url}/v1"
+    print(f"Ollama Base URL: {base_url}")
+    print(f"Ollama Model: {os.getenv('OLLAMA_MODEL', 'gpt-oss:20b-cloud')}")
     llm = ChatOpenAI(
         model=os.getenv("OLLAMA_MODEL", "gpt-oss:20b-cloud"),
         base_url=base_url,
@@ -102,20 +107,33 @@ def generate_sql(state: AgentState) -> AgentState:
     # we'll ask for raw sql in markdown block and extract it, or use structured output if using a good model.
     structured_llm = llm.with_structured_output(SQLGenerationOutput)
     
+    sql = None
     try:
-        result = structured_llm.invoke([SystemMessage(content=prompt)])
-        sql = result.sql
+        try:
+            result = structured_llm.invoke([
+                SystemMessage(content="You are an expert PostgreSQL Data Analyst."),
+                HumanMessage(content=prompt)
+            ])
+            sql = result.sql
+        except Exception as e:
+            # Fallback to normal parsing if structured output fails
+            response = llm.invoke([
+                SystemMessage(content="You are an expert PostgreSQL Data Analyst."),
+                HumanMessage(content=prompt)
+            ])
+            content = response.content
+            # Extract from markdown if present
+            if "```sql" in content:
+                sql = content.split("```sql")[1].split("```")[0].strip()
+            elif "```" in content:
+                sql = content.split("```")[1].strip()
+            else:
+                sql = content.strip()
     except Exception as e:
-        # Fallback to normal parsing if structured output fails
-        response = llm.invoke([SystemMessage(content=prompt)])
-        content = response.content
-        # Extract from markdown if present
-        if "```sql" in content:
-            sql = content.split("```sql")[1].split("```")[0].strip()
-        elif "```" in content:
-            sql = content.split("```")[1].strip()
-        else:
-            sql = content.strip()
+        raise LLMServiceError(f"LLM service unavailable. Please verify the Ollama Cloud configuration. Error details: {str(e)}")
+
+    if not sql or not sql.strip():
+        raise LLMServiceError("The AI could not generate a valid SQL query.")
             
     # Clean up backticks if any
     sql = sql.replace("`", "")
@@ -125,6 +143,8 @@ def generate_sql(state: AgentState) -> AgentState:
 def validate_sql_node(state: AgentState) -> AgentState:
     add_step(state, "Validating SQL")
     sql = state.get("generated_sql", "")
+    if not sql or not sql.strip():
+        raise LLMServiceError("The AI could not generate a valid SQL query.")
     try:
         valid_sql = validate_sql(sql)
         return {"generated_sql": valid_sql, "validation_result": "SUCCESS", "error": ""}
@@ -163,7 +183,10 @@ def analyze_result(state: AgentState) -> AgentState:
     """
     
     try:
-        response = llm.invoke([SystemMessage(content=prompt)])
+        response = llm.invoke([
+            SystemMessage(content="You are a data analyst."),
+            HumanMessage(content=prompt)
+        ])
         # simple json extraction
         content = response.content
         if "```json" in content:
@@ -174,7 +197,9 @@ def analyze_result(state: AgentState) -> AgentState:
         data = json.loads(content.strip())
         return {"analysis": data.get("summary", ""), "chart_type": data.get("chart_type", "none")}
     except Exception as e:
-        return {"analysis": "Data retrieved successfully.", "chart_type": "none"}
+        if isinstance(e, json.JSONDecodeError):
+            return {"analysis": "Data retrieved successfully.", "chart_type": "none"}
+        raise LLMServiceError(f"LLM service unavailable. Please verify the Ollama Cloud configuration. Error details: {str(e)}")
 
 def prepare_chart(state: AgentState) -> AgentState:
     add_step(state, "Preparing visualization")
@@ -213,11 +238,18 @@ def generate_final_answer(state: AgentState) -> AgentState:
     If no data was found, state that clearly.
     """
     
-    response = llm.invoke([SystemMessage(content=prompt)])
+    try:
+        response = llm.invoke([
+            SystemMessage(content="You are a data analyst."),
+            HumanMessage(content=prompt)
+        ])
+        content = response.content
+    except Exception as e:
+        raise LLMServiceError(f"LLM service unavailable. Please verify the Ollama Cloud configuration. Error details: {str(e)}")
     
-    state.get("conversation_history", []).append({"role": "assistant", "content": response.content})
+    state.get("conversation_history", []).append({"role": "assistant", "content": content})
     
-    return {"final_answer": response.content, "conversation_history": state.get("conversation_history", [])}
+    return {"final_answer": content, "conversation_history": state.get("conversation_history", [])}
 
 # Conditional edges
 def check_validation(state: AgentState) -> str:
