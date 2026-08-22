@@ -34,3 +34,45 @@ def get_database_schema() -> str:
         schema_details.append("") # Empty line for readability
         
     return "\n".join(schema_details)
+
+def get_structured_schema() -> list:
+    """
+    Inspects the database and returns a list of dictionaries containing structured table schemas.
+    """
+    inspector = inspect(engine)
+    schema = []
+    
+    for table_name in inspector.get_table_names():
+        table_data = {
+            "name": table_name,
+            "columns": [],
+            "foreign_keys": []
+        }
+        
+        # Columns
+        columns = inspector.get_columns(table_name)
+        pk = inspector.get_pk_constraint(table_name)
+        pk_cols = pk.get('constrained_columns', []) if pk else []
+        
+        for col in columns:
+            col_name = col['name']
+            col_type = str(col['type'])
+            table_data["columns"].append({
+                "name": col_name,
+                "type": col_type,
+                "is_pk": col_name in pk_cols
+            })
+            
+        # Foreign Keys
+        fks = inspector.get_foreign_keys(table_name)
+        for fk in fks:
+            table_data["foreign_keys"].append({
+                "constrained_columns": fk['constrained_columns'],
+                "referred_table": fk['referred_table'],
+                "referred_columns": fk['referred_columns']
+            })
+            
+        schema.append(table_data)
+        
+    return schema
+

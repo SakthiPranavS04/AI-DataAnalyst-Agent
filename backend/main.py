@@ -96,3 +96,12 @@ def run_query(request: QueryRequest, db: Session = Depends(get_db)):
 def chat(request: QueryRequest, db: Session = Depends(get_db)):
     # Equivalent to query for now. In a real system, you'd load history from a DB based on session_id
     return run_query(request, db)
+
+@app.get("/api/schema")
+def get_schema():
+    from db_inspector import get_structured_schema
+    try:
+        return get_structured_schema()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch schema: {str(e)}")
+
